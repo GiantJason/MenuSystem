@@ -1,0 +1,17 @@
+########################
+# Unreal Derived Files #
+########################
+
+*/Intermediate/
+*/Saved/
+*/Binaries/
+*/Content
+*/Build/
+*/DerivedDataCache/
+*/*.sln
+
+#######################
+# Visual Studio Files #
+#######################
+*/.vs/
+*.vsconfig
