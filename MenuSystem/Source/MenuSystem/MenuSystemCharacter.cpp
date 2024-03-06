@@ -13,11 +13,13 @@
 #include "Templates/SharedPointer.h"
 
 
+
 //////////////////////////////////////////////////////////////////////////
 // AMenuSystemCharacter
 
 AMenuSystemCharacter::AMenuSystemCharacter():
-	CreateSessionCompleteDelegate(FOnCreateSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnCreateSessionComplete))
+	CreateSessionCompleteDelegate(FOnCreateSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnCreateSessionComplete)),
+	FindSessionsCompleteDelegate(FOnFindSessionsCompleteDelegate::CreateUObject(this, &ThisClass::OnFindSessionsComplete))
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -107,10 +109,11 @@ void AMenuSystemCharacter::CreateGameSession()
 	SessionSettings->bAllowJoinViaPresence = true;
 	SessionSettings->bShouldAdvertise = true;
 	SessionSettings->bUsesPresence = true;
+	SessionSettings->bUseLobbiesIfAvailable = true;
+	SessionSettings->Set(FName("Matchtype"), FString("FreeForAll"), EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
 
 	// info of local player to get their unique net id
 	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
-
 	OnlineSessionInterface->CreateSession(*LocalPlayer->GetPreferredUniqueNetId(), NAME_GameSession, *SessionSettings);
 }
 
@@ -136,6 +139,57 @@ void AMenuSystemCharacter::OnCreateSessionComplete(FName SessionName, bool bWasS
 			);
 		}
 	}
+}
+
+void AMenuSystemCharacter::FindGameSession()
+{
+	// Find named session
+	if (!OnlineSessionInterface.IsValid()) {
+		return;
+	}
+
+	// Add delegate to session delegate list
+	OnlineSessionInterface->AddOnFindSessionsCompleteDelegate_Handle(FindSessionsCompleteDelegate);
+
+	SessionSearch = MakeShareable(new FOnlineSessionSearch());
+	SessionSearch->MaxSearchResults = 10000;
+	SessionSearch->bIsLanQuery = false;
+	SessionSearch->QuerySettings.Set(SEARCH_PRESENCE, true, EOnlineComparisonOp::Equals);
+
+	// info of local player to get their unique net id
+	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
+	OnlineSessionInterface->FindSessions(*LocalPlayer->GetPreferredUniqueNetId(), SessionSearch.ToSharedRef());
+}
+
+void AMenuSystemCharacter::OnFindSessionsComplete(bool bWasSuccessful)
+{
+	//if (bWasSuccessful) {
+		
+		for (auto Result : SessionSearch->SearchResults) {
+			FString Id = Result.GetSessionIdStr();
+			FString User = Result.Session.OwningUserName;
+
+			if (GEngine) {
+				GEngine->AddOnScreenDebugMessage(
+					-1,
+					15.f,
+					FColor::Cyan,
+					FString::Printf(TEXT("Id: %s, User: %s"), *Id, *User)
+				);
+			}
+		}
+	//}
+	//else
+	//{
+	//	if (GEngine) {
+	//		GEngine->AddOnScreenDebugMessage(
+	//			-1,
+	//			15.f,
+	//			FColor::Red,
+	//			FString(TEXT("Failed to find session!"))
+	//		);
+	//	}
+	//}
 }
 
 //////////////////////////////////////////////////////////////////////////

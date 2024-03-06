@@ -12,6 +12,7 @@
 */Content/Characters/
 */Content/StarterContent/
 */Content/__ExternalActors__/
+*/Platforms/HoloLens/
 
 
 #######################
@@ -20,3 +21,4 @@
 */.vs/
 *.vsconfig
 */*.sln
+
