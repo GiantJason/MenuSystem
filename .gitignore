@@ -13,7 +13,8 @@
 */Content/StarterContent/
 */Content/__ExternalActors__/
 */Platforms/HoloLens/
-
+*/Plugins/*/Intermediate/
+*/Plugins/*/Binaries/
 
 #######################
 # Visual Studio Files #
@@ -21,4 +22,5 @@
 */.vs/
 *.vsconfig
 */*.sln
+
 
