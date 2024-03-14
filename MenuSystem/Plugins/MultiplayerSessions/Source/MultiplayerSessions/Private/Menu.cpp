@@ -7,8 +7,12 @@
 #include "OnlineSessionSettings.h"
 #include "OnlineSubsystem.h"
 
-void UMenu::MenuSetup()
+void UMenu::MenuSetup(int32 NumberOfPublicConnections, FString TypeOfMatch, FString LobbyPath)
 {
+	PathToLobby = FString::Printf(TEXT("%s?listen"), *LobbyPath);
+	NumPublicConnections = NumberOfPublicConnections;
+	MatchType = TypeOfMatch;
+
 	AddToViewport();
 	SetVisibility(ESlateVisibility::Visible);
 	bIsFocusable = true;
@@ -19,6 +23,7 @@ void UMenu::MenuSetup()
 		APlayerController* PlayerController = World->GetFirstPlayerController();
 		if (PlayerController)
 		{
+			// UIOnly bans player input in current level
 			FInputModeUIOnly InputModeData;
 			InputModeData.SetWidgetToFocus(TakeWidget());
 			InputModeData.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
@@ -26,4 +31,91 @@ void UMenu::MenuSetup()
 			PlayerController->SetShowMouseCursor(true);
 		}
 	}
+
+	UGameInstance* GameInstance = GetGameInstance();
+	if (GameInstance)
+	{
+		MultiplayerSessionsSubsystem = GameInstance->GetSubsystem<UMultiplayerSessionsSubsystem>();
+	}
+}
+
+bool UMenu::Initialize()
+{
+
+	if (!Super::Initialize())
+	{
+		return false;
+	}
+
+	if (HostButton)
+	{
+		HostButton->OnClicked.AddDynamic(this, &ThisClass::HostButtonClicked);
+	}
+	if (JoinButton)
+	{
+		JoinButton->OnClicked.AddDynamic(this, &ThisClass::JoinButtonClicked);
+	}
+
+	return true;
+}
+
+void UMenu::HostButtonClicked()
+{
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			15.f,
+			FColor::Yellow,
+			FString(TEXT("Host Button Clicked"))
+		);
+	}
+
+	if (MultiplayerSessionsSubsystem)
+	{
+		MultiplayerSessionsSubsystem->CreateSession(NumPublicConnections, MatchType);
+
+		// Get to the lobby level
+		UWorld* World = GetWorld();
+		if (World) {
+			World->ServerTravel(FString("/Game/ThirdPerson/Maps/Lobby?listen"));
+		}
+	}
+}
+
+void UMenu::JoinButtonClicked()
+{
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			15.f,
+			FColor::Yellow,
+			FString(TEXT("Join Button Clicked"))
+		);
+	}
+}
+
+void UMenu::MenuTearDown()
+{
+	// Remove the widget from the window and restore player input
+	RemoveFromParent();
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		APlayerController* PlayerController = World->GetFirstPlayerController();
+		if (PlayerController)
+		{
+			FInputModeGameOnly InputModeData;
+			PlayerController->SetInputMode(InputModeData);
+			PlayerController->SetShowMouseCursor(false);
+		}
+	}
+}
+
+void UMenu::NativeDestruct()
+{
+	MenuTearDown();
+
+	Super::NativeDestruct();
 }
