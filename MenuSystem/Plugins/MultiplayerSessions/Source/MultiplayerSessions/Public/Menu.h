@@ -9,13 +9,12 @@
 #include "Menu.generated.h"
 
 /**
- * 
+ *
  */
 UCLASS()
 class MULTIPLAYERSESSIONS_API UMenu : public UUserWidget
 {
 	GENERATED_BODY()
-
 public:
 	UFUNCTION(BlueprintCallable)
 	void MenuSetup(int32 NumberOfPublicConnections = 4, FString TypeOfMatch = FString(TEXT("FreeForAll")), FString LobbyPath = FString(TEXT("/Game/ThirdPerson/Maps/Lobby")));
@@ -23,9 +22,22 @@ public:
 protected:
 
 	virtual bool Initialize() override;
+	virtual void NativeDestruct() override;
+
+	//
+	// Callbacks for the custom delegates on the MultiplayerSessionsSubsystem
+	//
+	UFUNCTION()
+	void OnCreateSession(bool bWasSuccessful);
+	void OnFindSessions(const TArray<FOnlineSessionSearchResult>& SessionResults, bool bWasSuccessful);
+	void OnJoinSession(EOnJoinSessionCompleteResult::Type Result);
+	UFUNCTION()
+	void OnDestroySession(bool bWasSuccessful);
+	UFUNCTION()
+	void OnStartSession(bool bWasSuccessful);
 
 private:
-
+	// Classes to bind with the BP of the same name
 	UPROPERTY(meta = (BindWidget))
 	class UButton* HostButton;
 
@@ -38,16 +50,11 @@ private:
 	UFUNCTION()
 	void JoinButtonClicked();
 
-	// Enable the input of player in lobby level
 	void MenuTearDown();
-
-	// Destroy last level when travel to another level
-	virtual void NativeDestruct() override;
 
 	// The subsystem designed to handle all online session functionality
 	class UMultiplayerSessionsSubsystem* MultiplayerSessionsSubsystem;
 
-	// Preset some parameters
 	int32 NumPublicConnections{ 4 };
 	FString MatchType{ TEXT("FreeForAll") };
 	FString PathToLobby{ TEXT("") };
